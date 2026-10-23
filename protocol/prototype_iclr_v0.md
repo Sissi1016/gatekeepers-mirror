@@ -48,3 +48,17 @@ Scripts are numbered and declare inputs and outputs. `data/raw/MANIFEST.json` re
 
 ## 9. What v0 does not claim
 No random assignment exists at ICLR, so O_m is not ground truth; the novelty and newcomer groups are proxies for the groups named in the proposal; and all outcome measures depend on title matching, whose failure rate is reported.
+
+## 10. Additions v0.1 (2026-10-23; proposed by the AI assistant, pending author review)
+- **O+ and O-.** The outcome learner is run with the group flag as an explicit input (O+) and without it (O-).
+  O- is the configuration of Arnold, Dobbie & Hull (2025, *AER: Insights* 7(2):231–249), who scored an
+  outcome-trained bail model against quasi-experimental ground truth and found that correcting for selection
+  left the racial gap nearly unchanged. Theory (Rambachan & Roth 2020) locates reversal where the learner can see the group.
+- **Common scale.** Decision and outcome learners are compared on percentile ranks among the evaluation year's
+  rejected submissions (section 7 left the scale open).
+- **Private information is relative to the reader.** In simulation (`results/sim_v0_summary.md`), removing reviewers'
+  private information did not remove the reversal when the learner read the text coarsely; it did when the text was
+  read nearly exactly. The condition test therefore also varies the reader (TF-IDF, sentence embeddings, a language
+  model) on the same records: a better reader should shrink the reversal.
+- Implemented in `code/05_learners.py`; `03_novelty.py` (embedding-based novelty) and `04_outcomes.py` (OpenAlex)
+  are not yet written and wait on the author's approval of the downloads they require.

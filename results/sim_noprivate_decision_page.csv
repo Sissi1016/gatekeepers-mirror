@@ -1,0 +1,5 @@
+learner,metric,value
+D,AUC accept (eval year),0.9156232804232803
+D_J,R2 mean score (eval year),0.56073666619917
+O-,"R2 log cites, accepted (eval year)",0.13629621971767925
+O_m-,"R2 log cites, accepted (eval year)",-0.3078462166754341
