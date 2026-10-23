@@ -49,5 +49,5 @@ placebo_parity D        -0.009 [-0.07, +0.04]  +0.010 [-0.04, +0.06]  +0.038 [-0
   errors of up to ±0.12); it stays a diagnostic, as the protocol says.
 
 ## Limits
-One seed per scenario; a bag-of-words generator; truth known exactly. Before any table enters the proposal,
+One seed per scenario (rerun over 30 seeds in `sim_seeds_summary.md`; the readings hold); a bag-of-words generator; truth known exactly. Before any table enters the proposal,
 each scenario is rerun over at least 50 seeds.
