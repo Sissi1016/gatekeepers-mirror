@@ -1,0 +1,22 @@
+# raw data is never committed (kept in Dropbox); small processed tables (<10 MB) are
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+!data/processed/*.csv
+!data/processed/*.json
+
+# model caches, environments, notebooks checkpoints
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.parquet
+*.feather
+
+# large results are published as release assets, not committed
+results/*
+!results/README.md
+!results/*.csv
+!results/*.md
