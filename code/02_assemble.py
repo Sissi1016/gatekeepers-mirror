@@ -11,6 +11,8 @@ normalize decisions into accept / reject / withdrawn / other; mean reviewer scor
 flag (no author seen in an earlier ICLR year); placebo groups (paper-number parity, title initial).
 Topic novelty needs an embedding model and is computed in 03_novelty.py.
 """
+from __future__ import annotations
+
 import pathlib
 import re
 import sys
@@ -30,6 +32,8 @@ def normalize_decision(x) -> str:
         return "withdrawn"
     if "desk" in s:
         return "desk_reject"
+    if "workshop" in s:
+        return "reject"  # "Invite to Workshop Track" (2017-2018): not accepted to the main conference
     if "reject" in s:
         return "reject"
     if "accept" in s or "oral" in s or "poster" in s or "spotlight" in s:
@@ -88,23 +92,30 @@ def main() -> int:
     out["decision"] = out["decision_raw"].map(normalize_decision)
     out["mean_score"] = df[col_scores].map(mean_score) if col_scores else float("nan")
     out["n_scores"] = df[col_scores].map(lambda v: len(list(v)) if v is not None and not isinstance(v, float) else 0) if col_scores else 0
-    out["n_authors"] = df[col_authors].map(lambda v: len(list(v)) if v is not None and not isinstance(v, float) else 0) if col_authors else 0
     out["abstract_chars"] = df[col_abs].astype(str).str.len() if col_abs else 0
     out["label"] = df[col_label].astype(str) if col_label else "unlabeled"
 
-    # newcomer team: no author (by OpenReview ID when available, else by exact name) seen in an earlier year
+    # newcomer team: no author seen in an earlier ICLR year. The mirror stores authors as one comma-separated
+    # string; OpenReview IDs exist only from 2021, so names (lower-cased) are used for every year to keep the
+    # comparison consistent. Name collisions make the flag conservative (some newcomers counted as returning).
+    def split_names(v):
+        if v is None or isinstance(v, float):
+            return []
+        items = v.split(",") if isinstance(v, str) else list(v)
+        return [" ".join(str(a).split()).lower() for a in items if str(a).strip()]
+    names = df[col_authors].map(split_names) if col_authors else pd.Series([[]] * len(df))
     seen: set = set()
-    newcomer = []
-    key_col = col_author_ids or col_authors
-    order = out["year"].argsort(kind="stable").values
     flags = [None] * len(out)
-    for idx in order:
-        v = df[key_col].iloc[idx] if key_col else None
-        authors = [str(a).strip().lower() for a in (list(v) if v is not None and not isinstance(v, float) else []) if str(a).strip()]
-        flags[idx] = int(len(authors) > 0 and not any(a in seen for a in authors))
-        seen.update(authors)
+    for y in sorted(out["year"].unique()):
+        idx = out.index[out["year"] == y]
+        year_names = [names.iloc[i] for i in idx]
+        for i, ns in zip(idx, year_names):
+            flags[i] = int(len(ns) > 0 and not any(a in seen for a in ns))
+        for ns in year_names:
+            seen.update(ns)
     out["newcomer_team"] = flags
-    out["newcomer_basis"] = "author_ids" if col_author_ids else ("names" if col_authors else "none")
+    out["newcomer_basis"] = "names, all years"
+    out["n_authors"] = names.map(len)
 
     # placebo groups
     num = out["openreview_id"].astype(str).map(lambda s: sum(ord(ch) for ch in s))  # deterministic pseudo-parity

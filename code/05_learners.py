@@ -58,6 +58,7 @@ def load(args):
     if args.extra_groups:
         eg = pd.read_csv(args.extra_groups)
         eg["openreview_id"] = eg["openreview_id"].astype(str)
+        eg = eg.drop(columns=[c for c in eg.columns if c in df.columns and c != "openreview_id"])
         df = df.merge(eg, on="openreview_id", how="left")
     df = df[df["decision"].isin(["accept", "reject"])].copy()
     df["accept"] = (df["decision"] == "accept").astype(int)
@@ -89,8 +90,11 @@ def train_predict(df, train, test, groups):
     pred["D_J"] = m.predict(X)
     ej = test & df["mean_score"].notna()
     page.append(("D_J", "R2 mean score (eval year)", r2_score(df.loc[ej, "mean_score"], pred["D_J"][ej.values])))
-    # O and O_m: outcomes of the admitted only
+    # O and O_m: outcomes of the admitted only (skipped when the outcome file has no outcomes for accepted papers,
+    # e.g. when the only outcome is ICLR-internal resubmission, which exists for rejected papers alone)
     to = train & (df["accept"] == 1) & df["log_cites"].notna()
+    if to.sum() < 50:
+        return pred, page
     q = df.loc[to].groupby("year")["mean_score"].transform(lambda s: s <= s.quantile(0.25))
     tom = to.copy()
     tom.loc[to] = q.fillna(False).astype(bool).values
@@ -154,6 +158,8 @@ def main() -> int:
     ap.add_argument("--eval-year", type=int, default=2024)
     ap.add_argument("--bootstrap", type=int, default=500)
     ap.add_argument("--prefix", default="01_iclr")
+    ap.add_argument("--truth-label", default="citations within the outcome window",
+                    help="description of the outcome used as truth, printed in the summary")
     args = ap.parse_args()
     for p in (args.texts, args.submissions, args.outcomes):
         if not pathlib.Path(p).exists():
@@ -192,6 +198,7 @@ def main() -> int:
     md = [f"# Signed error by group on the rejected side ({args.prefix})", "",
           f"Train years {args.train_years}; evaluation year {args.eval_year}; rejected submissions in evaluation year: {int(rej.sum())}; "
           f"share matched to a later outcome: {match_rate:.3f}. Seed {SEED}; bootstrap {args.bootstrap}.", "",
+          f"Truth on the rejected side: {args.truth_label}.", "",
           "Signed error = mean percentile rank of the learner's score in the group minus mean percentile rank of the realized outcome "
           "in the group, among rejected submissions of the evaluation year. Positive: the learner places the group higher than its "
           "realized outcomes warrant. Columns are the truth bounds.", "", "```\n" + wide.to_string() + "\n```", "",

@@ -1,0 +1,3 @@
+learner,metric,value
+D,AUC accept (eval year),0.6475702684965121
+D_J,R2 mean score (eval year),0.10734239574076498
